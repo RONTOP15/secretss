@@ -5,8 +5,9 @@ bodyParser = require('body-parser'),
 mongoose = require('mongoose'),
 app = express(),
 encrypt = require('mongoose-encryption')
+md5 = require('md5')
 
-
+console.log(md5('12345'))
 
 mongoose.connect('mongodb://localhost:27017/userDB', {useNewUrlParser: true, useUnifiedTopology: true})
 
@@ -14,9 +15,6 @@ const userSchema = new mongoose.Schema({
     email : String,
     password : String
 })
-
-var secret = 
-userSchema.plugin(encrypt,{secret  : process.env.SECRET, encryptedFields :['password'] })
 
 
 const User = mongoose.model('User', userSchema)
@@ -39,7 +37,7 @@ app.post('/register',function(req,res){
     
     const newUser = new User({
         email : req.body.username,
-        password : req.body.password
+        password : md5(req.body.password)
     })
     
     newUser.save(function(err){
@@ -58,7 +56,7 @@ app.get('/login',function(req,res){
 })
 app.post('/login',function(req,res){
     const username = req.body.username,
-          password = req.body.password;
+          password = md5(req.body.password);
 
     User.findOne({email: username}, function(err,foundUser){
         if(err){
@@ -82,6 +80,6 @@ app.post('/login',function(req,res){
 
 
 
-app.listen(3001,function(){
+app.listen(4000,function(){
     console.log("Server running on port 3000")
 });
