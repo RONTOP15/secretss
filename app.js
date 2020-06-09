@@ -4,10 +4,9 @@ ejs = require("ejs"),
 bodyParser = require('body-parser'),
 mongoose = require('mongoose'),
 app = express(),
-encrypt = require('mongoose-encryption')
-md5 = require('md5')
+bcrypt = require('bcrypt')
 
-console.log(md5('12345'))
+const saltRounds = 10;
 
 mongoose.connect('mongodb://localhost:27017/userDB', {useNewUrlParser: true, useUnifiedTopology: true})
 
@@ -34,19 +33,23 @@ app.get('/register',function(req,res){
 })
 
 app.post('/register',function(req,res){
+
+    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+        const newUser = new User({
+            email : req.body.username,
+            password : hash
+        });
+        console.log(hash);
+        
+        newUser.save(function(err){
+            if(err){
+                console.log(err)
+            }else{
+                res.render("secrets")
+            }
+        })
+    });
     
-    const newUser = new User({
-        email : req.body.username,
-        password : md5(req.body.password)
-    })
-    
-    newUser.save(function(err){
-        if(err){
-            console.log(err)
-        }else{
-            res.render("secrets")
-        }
-    })
 
 });
 
@@ -56,22 +59,26 @@ app.get('/login',function(req,res){
 })
 app.post('/login',function(req,res){
     const username = req.body.username,
-          password = md5(req.body.password);
+          password = req.body.password;
 
     User.findOne({email: username}, function(err,foundUser){
         if(err){
             console.log(err)
-        }else if(foundUser){
-                if(foundUser.password === password){
-                    console.log(foundUser + " " + password)
-                res.render('secrets');
-                }
-                else{
-                    console.log(foundUser + " " + password)
-
-                    res.send("Wrong password")
-                }
-        }
+        }else {
+            if(foundUser){
+                bcrypt.compare(password, foundUser.password, function(err, result) {
+                    if(result === true){
+                        res.render('secrets')
+                    }
+                    else{
+                        console.log(foundUser + " " + password)
+                        res.send("Wrong password")
+                    }
+                });
+            };
+           
+        };
+        
     });
 
 });
